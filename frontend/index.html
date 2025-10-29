@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Smart Energy Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .container {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 24px 32px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+            display: block;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box; /* Important */
+        }
+        button {
+            grid-column: 1 / -1;
+            background-color: #007aff;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+        .result-text {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #007aff;
+        }
+        
+        /* --- NEW CSS FOR ANOMALY ALERT --- */
+        .alert-box {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .alert-box.anomaly {
+            background-color: #ffebee; /* Light Red */
+            color: #c62828; /* Dark Red */
+        }
+        .alert-box.normal {
+            background-color: #e8f5e9; /* Light Green */
+            color: #2e7d32; /* Dark Green */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>⚡ Smart Energy Predictor</h1>
+        
+        <div class="form-grid">
+            
+            <!-- --- NEW INPUT FIELD --- -->
+            <div style="grid-column: 1 / -1;">
+                <label for="actual_energy_kWh">Current Actual Usage (from meter)</label>
+                <input id="actual_energy_kWh" type="number" value="150" style="font-size: 1.2em; border: 1px solid #007aff; color: #c62828; font-weight: 600;">
+            </div>
+
+            <div>
+                <label for="building_type">Building Type</label>
+                <select id="building_type">
+                    <option value="Education">Education</option>
+                    <option value="Office">Office</option>
+                    <option value="Residential">Residential</option>
+                    <option value="Entertainment/public assembly">Entertainment</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label for="building_id">Building ID</label>
+                <input id="building_id" type="text" value="105">
+            </div>
+            <div>
+                <label for="time_of_day">Time of Day</label>
+                <select id="time_of_day">
+                    <option value="Morning">Morning (5am-12pm)</option>
+                    <option value="Afternoon">Afternoon (12pm-5pm)</option>
+                    <option value="Evening">Evening (5pm-10pm)</option>
+                    <option value="Night">Night (10pm-5am)</option>
+                </select>
+            </div>
+            <div>
+                <label for="day_of_week">Day of Week</label>
+                <select id="day_of_week">
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+            <div>
+                <label for="temperature">Temperature (°C)</label>
+                <input id="temperature" type="number" value="22.5">
+            </div>
+            <div>
+                <label for="humidity">Humidity (Dewpoint)</label>
+                <input id="humidity" type="number" value="18.0">
+            </div>
+            <div>
+                <label for="no_of_people">Est. Occupancy</label>
+                <input id="no_of_people" type="number" value="50">
+            </div>
+            <div>
+                <label for="square_feet">Square Feet</label>
+                <input id="square_feet" type="number" value="50000">
+            </div>
+            
+            <button id="predict-button">Predict & Check for Anomaly</button>
+        </div>
+    </div>
+
+    <div class="container" id="result-box" style="display: none;">
+        <h2>Prediction Result</h2>
+        <div class="result-container">
+            <span class="result-text" id="prediction-result">...</span>
+            
+            <!-- --- NEW ALERT BOX --- -->
+            <div id="anomaly-alert-box" class="alert-box"></div>
+        </div>
+        
+        <canvas id="predictionChart" width="400" height="200" style="margin-top: 20px;"></canvas>
+    </div>
+
+    <script>
+        const predictButton = document.getElementById('predict-button');
+        const resultText = document.getElementById('prediction-result');
+        const resultBox = document.getElementById('result-box');
+        const chartCanvas = document.getElementById('predictionChart');
+        
+        // --- NEW: Get the anomaly box ---
+        const alertBox = document.getElementById('anomaly-alert-box');
+        let myChart;
+
+        predictButton.addEventListener('click', () => {
+            
+            // 1. Collect all the data from the form
+            const inputData = {
+                // --- NEW: Add the actual usage ---
+                actual_energy_kWh: parseFloat(document.getElementById('actual_energy_kWh').value),
+                
+                // Other features for prediction
+                building_type: document.getElementById('building_type').value,
+                building_id: document.getElementById('building_id').value,
+                time_of_day: document.getElementById('time_of_day').value,
+                day_of_week: document.getElementById('day_of_week').value,
+                temperature: parseFloat(document.getElementById('temperature').value),
+                humidity: parseFloat(document.getElementById('humidity').value),
+                no_of_people: parseInt(document.getElementById('no_of_people').value),
+                square_feet: parseInt(document.getElementById('square_feet').value)
+            };
+
+            // 2. Send the data to your Flask API
+            fetch('http://127.0.0.1:5000/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(inputData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 3. Display the result!
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                if (data.predicted_energy_kWh) {
+                    const prediction = data.predicted_energy_kWh;
+                    // Changed text to show "Predicted"
+                    resultText.innerText = `Predicted: ${prediction} kWh`;
+                    resultBox.style.display = 'block';
+
+                    // --- NEW: Display the anomaly message ---
+                    alertBox.innerText = data.anomaly_message;
+                    if (data.is_anomaly) {
+                        alertBox.className = 'alert-box anomaly'; // Set red style
+                    } else {
+                        alertBox.className = 'alert-box normal'; // Set green style
+                    }
+
+                    // 4. Update the chart (now shows 3 bars)
+                    updateChart(prediction, data.actual_energy_kWh, inputData.temperature);
+                    
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to connect to the API. Is "app.py" running?');
+            });
+        });
+
+        // --- UPDATED: Chart now shows 3 bars ---
+        function updateChart(prediction, actual, temp) {
+            const ctx = chartCanvas.getContext('2d');
+            
+            if (myChart) {
+                myChart.destroy(); // Remove old chart
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Predicted (kWh)', 'Actual (kWh)', 'Temperature (°C)'],
+                    datasets: [{
+                        label: 'Live Comparison',
+                        data: [prediction, actual, temp], // 3 data points
+                        backgroundColor: [
+                            'rgba(0, 122, 255, 0.7)', // Blue
+                            'rgba(211, 47, 47, 0.7)',  // Red (for Actual)
+                            'rgba(255, 149, 0, 0.7)' // Orange
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
