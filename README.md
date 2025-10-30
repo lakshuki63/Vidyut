@@ -123,7 +123,8 @@ Anomaly Detection: Threshold-based for prototype simplicity; can upgrade to Isol
 
 🧑‍💻 Team & Credits
 
-Developed by Team VIDYUT — IIIT Nagpur
+Developed by Team VIDYUT — 
+
  Lakshuki Hatwar
  Siddhi Dhoke
  Ness Dubey
@@ -131,6 +132,7 @@ Developed by Team VIDYUT — IIIT Nagpur
 Datasets: ASHRAE / Kaggle Energy Prediction Competition
 
 Libraries: scikit-learn, pandas, Flask, Plotly, XGBoost
+
 
 
 
